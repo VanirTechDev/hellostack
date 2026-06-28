@@ -8,16 +8,16 @@ namespace Api.GraphQL;
 [QueryType]
 public static class Query
 {
-    [UsePaging]
+    [UsePaging(IncludeTotalCount = true)]
     [UseFiltering]
     [UseSorting]
-    public static async Task<Connection<Message>> GetMessages(
+    public static async Task<Connection<Book>> GetBooks(
         PagingArguments pagingArgs,
-        QueryContext<Message> query,
-        MessageRepository repository,
+        QueryContext<Book> query,
+        BookRepository repository,
         CancellationToken ct)
     {
-        var page = await repository.GetMessagesAsync(pagingArgs, query, ct);
+        var page = await repository.GetBooksAsync(pagingArgs, query, ct);
         return page.ToConnection();
     }
 }

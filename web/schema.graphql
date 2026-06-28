@@ -3,7 +3,11 @@ schema {
 }
 
 type Query {
-  messages(
+  "Fetches an object given its ID."
+  node("ID of the object." id: ID!): Node @cost(weight: "10")
+  "Lookup nodes by a list of IDs."
+  nodes("The list of node IDs." ids: [ID!]!): [Node]! @cost(weight: "10")
+  books(
     "Returns the first _n_ elements from the list."
     first: Int
     "Returns the elements in the list that come after the specified cursor."
@@ -12,9 +16,9 @@ type Query {
     last: Int
     "Returns the elements in the list that come before the specified cursor."
     before: String
-    where: MessageFilterInput @cost(weight: "10")
-    order: [MessageSortInput!] @cost(weight: "10")
-  ): MessagesConnection
+    where: BookFilterInput @cost(weight: "10")
+    order: [BookSortInput!] @cost(weight: "10")
+  ): BooksConnection
     @listSize(
       assumedSize: 50
       slicingArguments: ["first", "last"]
@@ -25,28 +29,33 @@ type Query {
     @cost(weight: "10")
 }
 
-type Message {
-  id: Int!
-  text: String!
-  createdAt: DateTime!
+type Book implements Node {
+  id: ID!
+  title: String!
+  author: String!
+  sequenceNumber: Int!
+  publicationYear: Int!
+  pages: Int!
 }
 
 "A connection to a list of items."
-type MessagesConnection {
+type BooksConnection {
   "Information to aid in pagination."
   pageInfo: PageInfo!
   "A list of edges."
-  edges: [MessagesEdge!]
+  edges: [BooksEdge!]
   "A flattened list of the nodes."
-  nodes: [Message!]
+  nodes: [Book!]
+  "Identifies the total count of items in the connection."
+  totalCount: Int! @cost(weight: "10")
 }
 
 "An edge in a connection."
-type MessagesEdge {
+type BooksEdge {
   "A cursor for use in pagination."
   cursor: String!
   "The item at the end of the edge."
-  node: Message!
+  node: Book!
 }
 
 "Information about pagination in a connection."
@@ -61,19 +70,29 @@ type PageInfo {
   endCursor: String
 }
 
-input DateTimeOperationFilterInput {
-  eq: DateTime @cost(weight: "10")
-  neq: DateTime @cost(weight: "10")
-  in: [DateTime] @cost(weight: "10")
-  nin: [DateTime] @cost(weight: "10")
-  gt: DateTime @cost(weight: "10")
-  ngt: DateTime @cost(weight: "10")
-  gte: DateTime @cost(weight: "10")
-  ngte: DateTime @cost(weight: "10")
-  lt: DateTime @cost(weight: "10")
-  nlt: DateTime @cost(weight: "10")
-  lte: DateTime @cost(weight: "10")
-  nlte: DateTime @cost(weight: "10")
+"The node interface is implemented by entities that have a global unique identifier."
+interface Node {
+  id: ID!
+}
+
+input BookFilterInput {
+  and: [BookFilterInput!]
+  or: [BookFilterInput!]
+  id: IntOperationFilterInput
+  title: StringOperationFilterInput
+  author: StringOperationFilterInput
+  sequenceNumber: IntOperationFilterInput
+  publicationYear: IntOperationFilterInput
+  pages: IntOperationFilterInput
+}
+
+input BookSortInput {
+  id: SortEnumType @cost(weight: "10")
+  title: SortEnumType @cost(weight: "10")
+  author: SortEnumType @cost(weight: "10")
+  sequenceNumber: SortEnumType @cost(weight: "10")
+  publicationYear: SortEnumType @cost(weight: "10")
+  pages: SortEnumType @cost(weight: "10")
 }
 
 input IntOperationFilterInput {
@@ -89,20 +108,6 @@ input IntOperationFilterInput {
   nlt: Int @cost(weight: "10")
   lte: Int @cost(weight: "10")
   nlte: Int @cost(weight: "10")
-}
-
-input MessageFilterInput {
-  and: [MessageFilterInput!]
-  or: [MessageFilterInput!]
-  id: IntOperationFilterInput
-  text: StringOperationFilterInput
-  createdAt: DateTimeOperationFilterInput
-}
-
-input MessageSortInput {
-  id: SortEnumType @cost(weight: "10")
-  text: SortEnumType @cost(weight: "10")
-  createdAt: SortEnumType @cost(weight: "10")
 }
 
 input StringOperationFilterInput {
@@ -124,10 +129,6 @@ enum SortEnumType {
   ASC
   DESC
 }
-
-"The `DateTime` scalar type represents a date and time with time zone offset information."
-scalar DateTime
-  @specifiedBy(url: "https://scalars.graphql.org/chillicream/date-time.html")
 
 "The purpose of the `cost` directive is to define a `weight` for GraphQL types, fields, and arguments. Static analysis can use these weights when calculating the overall cost of a query or response."
 directive @cost(
